@@ -106,7 +106,7 @@ venv.bak/
 .vscode/
 checkpoint/
 data_processing/
-dateset/
+dataset/
 data_processing/JPG/
 
 TecMapPreNet.png
