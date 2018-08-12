@@ -1,7 +1,11 @@
 from keras.layers import (
     Input,
     TimeDistributed,
-    Lambda
+    Lambda,
+    Dense,
+    Activation,
+    Reshape,
+    Add
 )
 from keras.layers.convolutional import Convolution2D
 from keras.layers.convolutional_recurrent import ConvLSTM2D
@@ -10,7 +14,7 @@ from keras.models import Model
 from keras.layers.merge import Concatenate
 from keras.utils import plot_model
 
-from .params import Params
+from params import Params
 
 
 
@@ -35,30 +39,67 @@ def get_conv_block(input_time_steps, kernel_size=(3, 3), nb_filter=32, repetatio
 
     return layer_list, time_dis_layer_list
 
+def process_external(ext_input):
+    dense_1 = Dense(units=20)
+    time_dis_dense_1 = TimeDistributed(dense_1, input_shape=(Params.input_time_steps, Params.external_dim))
+
+    activation_1 = Activation('relu')
+    time_dis_activation_1 = TimeDistributed(activation_1, input_shape=(Params.input_time_steps, 20))
+
+    dense_2 = Dense(units=Params.map_rows * Params.map_cols)
+    time_dis_dense_2 = TimeDistributed(dense_2, input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
+
+    activation_2 = Activation('relu')
+    time_dis_activation_2 = TimeDistributed(activation_2, input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
+
+    reshape = Reshape((Params.map_rows, Params.map_cols, 1))
+    time_dis_reshape = TimeDistributed(reshape, input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
+
+    ext_processed = time_dis_dense_1(ext_input)
+    ext_processed = time_dis_activation_1(ext_processed)
+    ext_processed = time_dis_dense_2(ext_processed)
+    ext_processed = time_dis_activation_2(ext_processed)
+    ext_processed = time_dis_reshape(ext_processed)
+
+    return ext_processed
+
 
 def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=24, external_dim=4):
     rows, cols = tec_map_shape
+
+    input_list = []
+
     #对于tensorflow后端，通道数在最后
-    input = Input(shape=(input_time_steps, rows, cols, 1), name='data')
+    tec_input = Input(shape=(input_time_steps, rows, cols, 1), name='tec_data')
+    ext_input = Input(shape=(input_time_steps, external_dim), name='external_input')
+
+    input_list.append(tec_input)
+    input_list.append(ext_input)
+
+    #对外源输入进行处理
+    ext_processed = process_external(ext_input)
+
+    #融合tec_map和外源处理
+    merged_input = Add()([tec_input, ext_processed])
 
     #多尺度编码
     nb_filter = Params.conv_nb_filter
 
     conv33_layer, time_dis_conv33_layer = get_conv_layer(input_time_steps, layer_name="conv_3*3", kernel_size=(3, 3), nb_filter=nb_filter, channels=1)
     encoder_conv33_layers, encoder_conv33_block = get_conv_block(input_time_steps, kernel_size=(3, 3), nb_filter=nb_filter, repetations=3)
-    x_0 = time_dis_conv33_layer(input)
+    x_0 = time_dis_conv33_layer(merged_input)
     for layer in encoder_conv33_block:
         x_0 = layer(x_0)
 
     conv55_layer, time_dis_conv55_layer = get_conv_layer(input_time_steps, layer_name="conv_5*5", kernel_size=(5, 5), nb_filter=nb_filter, channels=1)
     encoder_conv55_layers, encoder_conv55_block = get_conv_block(input_time_steps, kernel_size=(5, 5), nb_filter=nb_filter, repetations=3)
-    x_1 = time_dis_conv55_layer(input)
+    x_1 = time_dis_conv55_layer(merged_input)
     for layer in encoder_conv55_block:
         x_1 = layer(x_1)
 
     conv77_layer, time_dis_conv77_layer = get_conv_layer(input_time_steps, layer_name="conv_7*7", kernel_size=(7, 7), nb_filter=nb_filter, channels=1)
     encoder_conv77_layers, encoder_conv77_block = get_conv_block(input_time_steps, kernel_size=(7, 7), nb_filter=nb_filter, repetations=3)
-    x_2 = time_dis_conv77_layer(input)
+    x_2 = time_dis_conv77_layer(merged_input)
     for layer in encoder_conv77_block:
         x_2 = layer(x_2)
 
@@ -147,7 +188,7 @@ def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=24, extern
 
     predictions = Concatenate(axis=1, name="final_concatenate")(prediction_list)
 
-    model = Model(input, predictions)
+    model = Model(input_list, predictions)
     return model
 
 
