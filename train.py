@@ -14,6 +14,9 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 from keras.callbacks import ModelCheckpoint
 from model.params import Params
 from model.tec_pre_net import tec_pre_net
+import keras.backend.tensorflow_backend as ktf
+
+
 
 def parse_data(serialized_example):
     #return input_img_sequences and output_img_sequences
@@ -22,25 +25,30 @@ def parse_data(serialized_example):
         features={
             'input_img_sequences'        : tf.FixedLenFeature([], tf.string),
             'output_img_sequences'       : tf.FixedLenFeature([], tf.string),
+            'input_ext_sequences'        : tf.FixedLenFeature([], tf.string),
             'input_img_sequences_shape'  : tf.FixedLenFeature([4], tf.int64),
-            'output_img_sequences_shape' : tf.FixedLenFeature([4], tf.int64)
+            'output_img_sequences_shape' : tf.FixedLenFeature([4], tf.int64),
+            'input_ext_sequences_shape'  : tf.FixedLenFeature([2], tf.int64),
         }
     )
 
     input_img_sequences = tf.decode_raw(features['input_img_sequences'], tf.uint8)
     output_img_sequences = tf.decode_raw(features['output_img_sequences'], tf.uint8)
+    input_ext_sequences = tf.decode_raw(features['input_ext_sequences'], tf.float32)
 
     input_img_sequences_shape  = tf.cast(features['input_img_sequences_shape'], tf.int32)
     output_img_sequences_shape = tf.cast(features['output_img_sequences_shape'], tf.int32)
+    input_ext_sequences_shape  = tf.cast(features['input_ext_sequences_shape'], tf.int32)
 
     input_img_sequences = tf.reshape(input_img_sequences, input_img_sequences_shape)
     output_img_sequences = tf.reshape(output_img_sequences, output_img_sequences_shape)
+    input_ext_sequences = tf.reshape(input_ext_sequences, input_ext_sequences_shape)
     #throw input_img_sequences tensor
     # input_img_sequences = tf.cast(input_img_sequences, tf.int32)
     #throw output_img_sequences tensor
     # output_img_sequences = tf.cast(output_img_sequences, tf.int32)
 
-    return input_img_sequences, output_img_sequences
+    return input_img_sequences, input_ext_sequences, output_img_sequences
 
 
 def load_data(filename):
@@ -59,10 +67,10 @@ if __name__ == '__main__':
     img_rows              = Params.map_rows
     img_cols              = Params.map_cols
     input_time_steps      = Params.input_time_steps
-    output_time_steps     = Params.output_length
-    nb_train_samples      = 13978
-    nb_validation_samples = 1747
-    nb_test_samples       = 1748
+    output_time_steps     = Params.output_time_steps
+    nb_train_samples      = 6970
+    nb_validation_samples = 871
+    nb_test_samples       = 872
     nb_epoch              = 10
     batch_size            = Params.batch_size
 
@@ -83,38 +91,40 @@ if __name__ == '__main__':
     model.compile(optimizer=opt, loss='mse', metrics=['accuracy'])
 
     init_op = tf.global_variables_initializer()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth=True
+    session = tf.Session(config=config)
     #开始一个会话
-    with tf.Session() as sess:         
+    with tf.Session(config=config) as sess:
+        
+        # GPU 显存自动调用
+        ktf.set_session(session)       
         sess.run(init_op)
         sess.run(training_dataset_iterator.initializer)
         sess.run(validation_dataset_iterator.initializer)
 
-        input_img_sequences_training = []
-        output_img_sequences_training = []
         input_img_sequences_validation = []
         output_img_sequences_validation = []
 
         try:
             while True:
-                input_img_sequences, output_img_sequences = sess.run(training_dataset_iterator_next_element)
-                input_img_sequences_training.append(input_img_sequences)
-                output_img_sequences_training.append(output_img_sequences)
-        except tf.errors.OutOfRangeError:
-            print("Training dataset constructed ...")
-
-        try:
-            while True:
-                input_img_sequences, output_img_sequences = sess.run(validation_dataset_iterator_next_element)
+                input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(validation_dataset_iterator_next_element)
                 input_img_sequences_validation.append(input_img_sequences)
                 output_img_sequences_validation.append(output_img_sequences)
         except tf.errors.OutOfRangeError:
-            print("Validation dataset constructed ...")                 
-            
-        input_img_sequences_training_fit_x = np.array(input_img_sequences_training)
-        output_img_sequences_training_fit_y = np.array(output_img_sequences_training)
+            print("Validation dataset constructed ...")
+
         input_img_sequences_validation_fit_x = np.array(input_img_sequences_validation)
         output_img_sequences_validation_fit_y = np.array(output_img_sequences_validation)
-        
+
+
+        def generate_arrays_from_dataset(dataset_iterator_get_next):
+            while True:
+                input_img_sequences, output_img_sequences = sess.run(dataset_iterator_get_next)
+                input_img_sequences_training_fit_x = np.expand_dims(input_img_sequences, axis=0)
+                output_img_sequences_training_fit_y = np.expand_dims(output_img_sequences, axis=0)
+                yield input_img_sequences_training_fit_x, output_img_sequences_training_fit_y
+
         # Callback
         checkpointer = ModelCheckpoint(
             filepath=os.path.join(cwd, 'checkpoint', 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_acc:.5f}.hdf5'),
@@ -124,9 +134,8 @@ if __name__ == '__main__':
             save_best_only=False
         )
         
-        model.fit(
-            x=input_img_sequences_training_fit_x,
-            y=output_img_sequences_training_fit_y,
+        model.fit_generator(
+            generate_arrays_from_dataset(training_dataset_iterator_next_element),
             epochs=2,
             verbose=1,
             callbacks=[checkpointer],
@@ -134,3 +143,11 @@ if __name__ == '__main__':
             steps_per_epoch=nb_train_samples//batch_size,
             validation_steps=nb_validation_samples//batch_size
         )
+
+
+
+
+
+        
+        
+        

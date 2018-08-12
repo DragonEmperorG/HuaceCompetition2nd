@@ -5,7 +5,7 @@ class Params(object):
     map_rows = 61 #tec_map行数
     map_cols = 49 #tec_map列数
     input_time_steps = 36 #输入时间序列长度，36*2小时/24小时=3天
-    output_length = 24 #输出时间序列长度，24*2小时/24小时=2天
+    output_time_steps = 12 #输出时间序列长度，24*2小时/24小时=2天
     conv_nb_filter = 32 #卷积层卷积核数量
     conv_lstm_filters = conv_nb_filter #暂时保持一致
     external_dim = 4 #外源输入维度

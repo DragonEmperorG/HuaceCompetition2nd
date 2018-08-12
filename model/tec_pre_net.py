@@ -36,7 +36,7 @@ def get_conv_block(input_time_steps, kernel_size=(3, 3), nb_filter=32, repetatio
     return layer_list, time_dis_layer_list
 
 
-def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=24, external_dim=4):
+def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, external_dim=4):
     rows, cols = tec_map_shape
     #对于tensorflow后端，通道数在最后
     input = Input(shape=(input_time_steps, rows, cols, 1), name='data')
