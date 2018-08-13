@@ -70,23 +70,22 @@ if __name__ == '__main__':
     nb_train_samples      = 6970
     nb_validation_samples = 871
     nb_test_samples       = 872
-    nb_epoch              = 10
+    nb_epoch              = 100
     batch_size            = Params.batch_size
-    weights_path          = os.path.join(cwd, 'checkpoint','TEC_PRE_NET_MODEL_WEIGHTS.07-0.01108-2018_08_13_08_00_04.hdf5')
+    weights_path          = os.path.join(cwd, 'checkpoint',"TEC_PRE_NET_MODEL_WEIGHTS.07-0.01188-2018_08_13_12_26_11.hdf5")
 
 
     training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
-    # training_dataset          = training_dataset.batch(batch_size)
+    training_dataset.repeat(count=nb_epoch)
     training_dataset_iterator = training_dataset.make_initializable_iterator()
     training_dataset_iterator_next_element = training_dataset_iterator.get_next()
 
     validation_dataset          = load_data(os.path.join(cwd, 'dataset','ion_validation.tfrecords'))
-    # validation_dataset          = validation_dataset.batch(batch_size)   
     validation_dataset_iterator = validation_dataset.make_initializable_iterator()
     validation_dataset_iterator_next_element = validation_dataset_iterator.get_next()
 
     model = tec_pre_net((img_rows, img_cols))
-    model.load_weights(weights_path, by_name=True)
+    model.load_weights(weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
     model.compile(optimizer=opt, loss='mean_squared_error', metrics=['accuracy'])
@@ -99,7 +98,7 @@ if __name__ == '__main__':
     with tf.Session(config=config) as sess:
         
         # GPU 显存自动调用
-        ktf.set_session(session)       
+        # ktf.set_session(session)       
         sess.run(init_op)
         sess.run(training_dataset_iterator.initializer)
         sess.run(validation_dataset_iterator.initializer)
@@ -108,18 +107,18 @@ if __name__ == '__main__':
         input_ext_sequences_validation = []
         output_img_sequences_validation = []
 
-        # try:
-        #     while True:
-        #         input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(validation_dataset_iterator_next_element)
-        #         input_img_sequences_validation.append(input_img_sequences)
-        #         input_ext_sequences_validation.append(input_ext_sequences)
-        #         output_img_sequences_validation.append(output_img_sequences)
-        # except tf.errors.OutOfRangeError:
-        #     print("Validation dataset constructed ...")
+        try:
+            while True:
+                input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(validation_dataset_iterator_next_element)
+                input_img_sequences_validation.append(input_img_sequences)
+                input_ext_sequences_validation.append(input_ext_sequences)
+                output_img_sequences_validation.append(output_img_sequences)
+        except tf.errors.OutOfRangeError:
+            print("Validation dataset constructed ...")
 
-        # input_img_sequences_validation_fit_x = np.array(input_img_sequences_validation)
-        # input_ext_sequences_validation_fit_x = np.array(input_ext_sequences_validation)
-        # output_img_sequences_validation_fit_y = np.array(output_img_sequences_validation)
+        input_img_sequences_validation_fit_x = np.array(input_img_sequences_validation)
+        input_ext_sequences_validation_fit_x = np.array(input_ext_sequences_validation)
+        output_img_sequences_validation_fit_y = np.array(output_img_sequences_validation)
 
 
         def generate_arrays_from_dataset(dataset_iterator_get_next):
@@ -146,7 +145,7 @@ if __name__ == '__main__':
             epochs=nb_epoch,
             verbose=1,
             callbacks=[checkpointer],
-            validation_data=generate_arrays_from_dataset(validation_dataset_iterator_next_element),
+            validation_data=([input_img_sequences_validation_fit_x, input_ext_sequences_validation_fit_x], output_img_sequences_validation_fit_y),
             steps_per_epoch=nb_train_samples//batch_size,
             validation_steps=nb_validation_samples//batch_size
         )
