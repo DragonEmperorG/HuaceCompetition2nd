@@ -14,7 +14,7 @@ from keras.models import Model
 from keras.layers.merge import Concatenate
 from keras.utils import plot_model
 
-from params import Params
+from .params import Params
 
 
 
@@ -64,14 +64,14 @@ def process_external(ext_input):
     return ext_processed
 
 
-def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, external_dim=4):
+def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, external_dim=5):
     rows, cols = tec_map_shape
 
     input_list = []
 
     #对于tensorflow后端，通道数在最后
-    tec_input = Input(shape=(input_time_steps, rows, cols, 1), name='tec_data')
-    ext_input = Input(shape=(input_time_steps, external_dim), name='external_input')
+    tec_input = Input(shape=(input_time_steps, rows, cols, 1), name='tec_input')
+    ext_input = Input(shape=(input_time_steps, external_dim), name='ext_input')
 
     input_list.append(tec_input)
     input_list.append(ext_input)
@@ -198,4 +198,3 @@ if __name__ == '__main__':
     model = tec_pre_net((Params.map_rows, Params.map_cols))
     plot_model(model, to_file='./TecMapPreNet.svg', show_shapes=True)
     model.summary()
-
