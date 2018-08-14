@@ -105,7 +105,6 @@ venv.bak/
 .idea/
 .vscode/
 checkpoint/
-data_processing/
 dataset/
 data_processing/JPG/
 

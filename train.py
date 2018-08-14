@@ -70,13 +70,13 @@ if __name__ == '__main__':
     nb_train_samples      = 6970
     nb_validation_samples = 871
     nb_test_samples       = 872
-    nb_epoch              = 100
+    nb_epoch              = 10
     batch_size            = Params.batch_size
-    weights_path          = os.path.join(cwd, 'checkpoint',"TEC_PRE_NET_MODEL_WEIGHTS.07-0.01188-2018_08_13_12_26_11.hdf5")
+    weights_path          = os.path.join(cwd, 'checkpoint',"1.hdf5")
 
 
     training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
-    training_dataset.repeat(count=nb_epoch)
+    # training_dataset.repeat(count=nb_epoch)
     training_dataset_iterator = training_dataset.make_initializable_iterator()
     training_dataset_iterator_next_element = training_dataset_iterator.get_next()
 
@@ -122,14 +122,17 @@ if __name__ == '__main__':
 
 
         def generate_arrays_from_dataset(dataset_iterator_get_next):
-            while True:
-                input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(dataset_iterator_get_next)
-                input_img_sequences_training_fit_x = np.expand_dims(input_img_sequences, axis=0)
-                input_ext_sequences_training_fit_x = np.expand_dims(input_ext_sequences, axis=0)
-                output_img_sequences_training_fit_y = np.expand_dims(output_img_sequences, axis=0)
+            try:
+                while True:
+                    input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(dataset_iterator_get_next)
+                    input_img_sequences_training_fit_x = np.expand_dims(input_img_sequences, axis=0)
+                    input_ext_sequences_training_fit_x = np.expand_dims(input_ext_sequences, axis=0)
+                    output_img_sequences_training_fit_y = np.expand_dims(output_img_sequences, axis=0)
 
-                yield [input_img_sequences_training_fit_x, input_ext_sequences_training_fit_x], output_img_sequences_training_fit_y
-
+                    yield [input_img_sequences_training_fit_x, input_ext_sequences_training_fit_x], output_img_sequences_training_fit_y
+            except tf.errors.OutOfRangeError:
+                print("Iterated dataset one epoch ...")
+                sess.run(training_dataset_iterator.initializer)
 
         # Callback
         checkpointer = ModelCheckpoint(
