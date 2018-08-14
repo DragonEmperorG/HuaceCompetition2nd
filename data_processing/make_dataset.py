@@ -5,6 +5,7 @@
  
 import os 
 import csv
+import configparser
 import numpy as np
 import tensorflow as tf 
 
@@ -16,12 +17,14 @@ from tqdm import tqdm
 if  __name__ == '__main__':
 
     cwd = os.getcwd()
+    np.random.seed(0)
     raw_data_path = os.path.join(cwd, 'data_processing','JPG')
     # 要生成的文件
     training_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_training.tfrecords"))
     validation_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_validation.tfrecords"))
     test_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_test.tfrecords"))
     csv_reader = csv.reader(open(os.path.join(cwd, 'data_processing', "exogenous.txt")))
+    conf = configparser.ConfigParser()
 
     row_list = []
     for row in csv_reader:
@@ -36,12 +39,12 @@ if  __name__ == '__main__':
     output_time_steps = 12
     iot_time_steps = input_time_steps + output_time_steps
 
-    time_step_counter       = 0
-    nb_train_samples        = 0
-    nb_validation__samples  = 0
-    nb_test_samples         = 0
-    training_time_step_num   = int((len(os.listdir(raw_data_path)) - iot_time_steps + 1) * 0.8)
-    validation_time_step_num = int((len(os.listdir(raw_data_path)) - iot_time_steps + 1) * 0.9)
+    time_step_counter      = 0
+    nb_train_samples       = 0
+    nb_validation_samples  = 0
+    nb_test_samples        = 0
+    total_time_step        = len(os.listdir(raw_data_path))
+    nb_samples             = 0
 
     iot_img_sequences      = []
     input_img_sequences    = []
@@ -75,6 +78,8 @@ if  __name__ == '__main__':
         time_step_counter = time_step_counter + 1
 
         if (time_step_counter >= iot_time_steps):
+            nb_samples = nb_samples + 1
+
             input_img_sequences   = iot_img_sequences[:input_time_steps]
             output_img_sequences  = iot_img_sequences[input_time_steps:]
             input_time_sequences  = iot_time_sequences[:input_time_steps]
@@ -102,18 +107,19 @@ if  __name__ == '__main__':
                 'input_ext_sequences_shape'  : tf.train.Feature(int64_list=tf.train.Int64List(value=input_ext_sequences_array.shape)),
             }))
 
-            if (time_step_counter <= training_time_step_num + iot_time_steps - 1):
+            if (np.random.randint(10) <= 7):
                 #序列化为字符串
                 nb_train_samples = nb_train_samples + 1
                 training_writer.write(example.SerializeToString())
 
-            elif (time_step_counter <= validation_time_step_num + iot_time_steps - 1):
-                nb_validation__samples = nb_validation__samples + 1
+            elif (np.random.randint(10) == 8):
+                nb_validation_samples = nb_validation_samples + 1
                 validation_writer.write(example.SerializeToString())
 
             else:
                 nb_test_samples = nb_test_samples + 1
                 test_writer.write(example.SerializeToString())
+            
 
             iot_img_sequences.pop(0)
             iot_time_sequences.pop(0)
@@ -123,7 +129,12 @@ if  __name__ == '__main__':
     validation_writer.close()
     test_writer.close()
 
-    print(nb_train_samples)
-    print(nb_validation__samples)
-    print(nb_test_samples)
-    print(time_step_counter)
+    conf["DatasetInfo"] = {        
+        'nb_time_step'          : time_step_counter,
+        'nb_samples'            : nb_samples,
+        'nb_train_samples'      : nb_train_samples,
+        'nb_validation_samples' : nb_validation_samples,
+        'nb_test_samples'       : nb_test_samples,
+    }
+    with open(os.path.join(cwd, 'dataset', 'ion_dataset_info.ini'), 'w') as configfile:
+        conf.write(configfile)

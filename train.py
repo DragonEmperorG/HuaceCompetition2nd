@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
 
     training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
-    # training_dataset.repeat(count=nb_epoch)
+    training_dataset.repeat()
     training_dataset_iterator = training_dataset.make_initializable_iterator()
     training_dataset_iterator_next_element = training_dataset_iterator.get_next()
 
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     validation_dataset_iterator_next_element = validation_dataset_iterator.get_next()
 
     model = tec_pre_net((img_rows, img_cols))
-    model.load_weights(weights_path, by_name=False)
+    # model.load_weights(weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
     model.compile(optimizer=opt, loss='mean_squared_error', metrics=['accuracy'])
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
         # Callback
         checkpointer = ModelCheckpoint(
-            filepath=os.path.join(cwd, 'checkpoint', 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_acc:.5f}-'+datetime.now().strftime('%Y_%m_%d_%H_%M_%S')+'.hdf5'),
+            filepath=os.path.join(cwd, 'checkpoint', 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_acc:.5f}.hdf5'),
             monitor='val_acc',
             verbose=1,
             save_weights_only= True,
