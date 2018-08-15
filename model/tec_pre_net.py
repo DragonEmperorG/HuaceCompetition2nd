@@ -21,8 +21,8 @@ from .params import Params
 
 def get_conv_layer(input_time_steps, layer_name, kernel_size=(3, 3), nb_filter=32, channels=32):
     #对每个time_step的tec_map做卷积计算
-    conv_layer = Convolution2D(nb_filter, kernel_size, padding="same",name=layer_name, activation="relu")
-    time_dis_conv_layer = TimeDistributed(conv_layer, input_shape=(input_time_steps, Params.map_rows, Params.map_cols, channels))
+    conv_layer = Convolution2D(nb_filter, kernel_size, padding="same", name=layer_name, activation="relu")
+    time_dis_conv_layer = TimeDistributed(conv_layer, name="time_dis_"+layer_name, input_shape=(input_time_steps, Params.map_rows, Params.map_cols, channels))
 
     return conv_layer, time_dis_conv_layer
 
@@ -40,20 +40,20 @@ def get_conv_block(input_time_steps, kernel_size=(3, 3), nb_filter=32, repetatio
     return layer_list, time_dis_layer_list
 
 def process_external(ext_input):
-    dense_1 = Dense(units=20)
-    time_dis_dense_1 = TimeDistributed(dense_1, input_shape=(Params.input_time_steps, Params.external_dim))
+    dense_1 = Dense(units=20, name="dense_20")
+    time_dis_dense_1 = TimeDistributed(dense_1, name="time_dis_dense_20", input_shape=(Params.input_time_steps, Params.external_dim))
 
     activation_1 = Activation('relu')
     time_dis_activation_1 = TimeDistributed(activation_1, input_shape=(Params.input_time_steps, 20))
 
-    dense_2 = Dense(units=Params.map_rows * Params.map_cols)
-    time_dis_dense_2 = TimeDistributed(dense_2, input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
+    dense_2 = Dense(units=Params.map_rows * Params.map_cols, name="dense_image_size")
+    time_dis_dense_2 = TimeDistributed(dense_2, name="time_dis_dense_image_size", input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
 
     activation_2 = Activation('relu')
     time_dis_activation_2 = TimeDistributed(activation_2, input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
 
     reshape = Reshape((Params.map_rows, Params.map_cols, 1))
-    time_dis_reshape = TimeDistributed(reshape, input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
+    time_dis_reshape = TimeDistributed(reshape, name="time_dis_reshape", input_shape=(Params.input_time_steps, Params.map_rows * Params.map_cols))
 
     ext_processed = time_dis_dense_1(ext_input)
     ext_processed = time_dis_activation_1(ext_processed)
@@ -80,7 +80,7 @@ def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, extern
     ext_processed = process_external(ext_input)
 
     #融合tec_map和外源处理
-    merged_input = Add()([tec_input, ext_processed])
+    merged_input = Add(name="add")([tec_input, ext_processed])
 
     #多尺度编码
     nb_filter = Params.conv_nb_filter
@@ -109,6 +109,7 @@ def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, extern
                               padding='same',
                               return_sequences=True,
                               #stateful=True,
+                              name="conv_lstm_33",
                               batch_input_shape=(1, 1, 1),
                               input_shape=(None, rows, cols, nb_filter))
     conv_33 = conv_lstm_33_layer(x_0)
@@ -118,6 +119,7 @@ def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, extern
                               padding='same',
                               return_sequences=True,
                               #stateful=True,
+                              name="conv_lstm_55",
                               input_shape=(None, rows, cols, nb_filter))
     conv_55 = conv_lstm_55_layer(x_1)
 
@@ -126,6 +128,7 @@ def tec_pre_net(tec_map_shape, input_time_steps=36, output_time_steps=12, extern
                               padding='same',
                               return_sequences=True,
                               #stateful=True,
+                              name="conv_lstm_77",
                               input_shape=(None, rows, cols, nb_filter))
     conv_77 = conv_lstm_77_layer(x_2)
 
