@@ -108,5 +108,6 @@ checkpoint/
 data_processing/JPG/
 dataset/
 tensorboard/
+prediction/
 
 TecMapPreNet.png

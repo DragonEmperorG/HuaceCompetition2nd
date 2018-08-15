@@ -69,7 +69,7 @@ if  __name__ == '__main__':
         # 将图片转化为矩阵
         img_raw_array = np.array(img)
         img_raw_array = np.reshape(img_raw_array, (img_raw_array.shape[0], img_raw_array.shape[1], 1))
-        img_time_step = os.path.splitext(img_name)[0]
+        img_time_step = int(os.path.splitext(img_name)[0])
 
         iot_img_sequences.append(img_raw_array)
         iot_time_sequences.append(img_time_step)
@@ -99,8 +99,8 @@ if  __name__ == '__main__':
             example = tf.train.Example(features=tf.train.Features(feature={
                 'input_img_sequences'        : tf.train.Feature(bytes_list=tf.train.BytesList(value=[input_img_sequences_array.tobytes()])),
                 'output_img_sequences'       : tf.train.Feature(bytes_list=tf.train.BytesList(value=[output_img_sequences_array.tobytes()])),
-                'input_time_sequences'       : tf.train.Feature(bytes_list=tf.train.BytesList(value=[input_time_sequences_array.tobytes()])),
-                'output_time_sequences'      : tf.train.Feature(bytes_list=tf.train.BytesList(value=[output_time_sequences_array.tobytes()])),
+                'input_time_sequences'       : tf.train.Feature(int64_list=tf.train.Int64List(value=input_time_sequences_array.flatten().tolist())),
+                'output_time_sequences'      : tf.train.Feature(int64_list=tf.train.Int64List(value=output_time_sequences_array.flatten().tolist())),
                 'input_ext_sequences'        : tf.train.Feature(float_list=tf.train.FloatList(value=input_ext_sequences_array.flatten().tolist())),
                 'input_img_sequences_shape'  : tf.train.Feature(int64_list=tf.train.Int64List(value=input_img_sequences_array.shape)),
                 'output_img_sequences_shape' : tf.train.Feature(int64_list=tf.train.Int64List(value=output_img_sequences_array.shape)),
