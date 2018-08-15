@@ -134,3 +134,30 @@ if __name__ == '__main__':
             steps_per_epoch=nb_train_samples//batch_size,
             validation_steps=nb_validation_samples//batch_size
         )
+
+
+# Debug generate_arrays_from_dataset generateor
+# for epoch in range(nb_epoch):
+#     example_counter = 0
+#     print("Epoch " + str(epoch) + '/' + str(nb_epoch))
+#     for x, y in (generate_arrays_from_dataset(training_dataset_iterator_next_element)):
+#         example_counter = example_counter + 1
+#         if (example_counter == 6926):
+#             print(example_counter)
+#     print("Last Epoch example numble: " + str(example_counter))
+
+
+# while True:
+#     stop = start + batch_size
+#     diff = stop - model_input_1.shape[0]
+#     if diff <= 0:
+#         tec_input  = model_input_1[start:stop]
+#         ext_input  = model_input_2[start:stop]
+#         tec_output = model_output_1[start:stop]
+#         start += batch_size
+#     else:
+#         tec_input  = np.concatenate((model_input_1[start:], model_input_1[:diff]))
+#         ext_input  = np.concatenate((model_input_2[start:], model_input_2[:diff]))
+#         tec_output = np.concatenate((model_output_1[start:], model_output_1[:diff]))
+#         start = diff
+#     yield [tec_input, ext_input], tec_output
