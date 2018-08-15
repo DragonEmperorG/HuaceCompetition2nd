@@ -92,9 +92,6 @@ if __name__ == '__main__':
     # with tf.Session(config=tfconfig) as sess:
     with tf.Session() as sess:  
         sess.run(test_dataset_iterator.initializer)
-       
-        model = tec_pre_net((img_rows, img_cols))
-        model.load_weights(load_weights_path, by_name=False)
 
         try:
             while True:
@@ -108,17 +105,23 @@ if __name__ == '__main__':
             print("Test dataset constructed ...")
 
 
-    
+    model = tec_pre_net((img_rows, img_cols))
+    model.load_weights(load_weights_path, by_name=False)
+
     for test_samples_counter in tqdm(range(nb_test_samples), desc="IONPredictionProgress", unit="sequences", ascii=True):
         input_img_sequences_predict_fit_x = np.expand_dims(input_img_sequences_test[test_samples_counter], axis=0)
         input_ext_sequences_predict_fit_x = np.expand_dims(input_ext_sequences_test[test_samples_counter], axis=0)
-        output_img_sequences_predict = model.predict([input_img_sequences_predict_fit_x, input_ext_sequences_predict_fit_x])
 
-        output_img_sequences_test_concatenate    = np.reshape(output_img_sequences_test[test_samples_counter], (output_time_steps*img_rows, img_cols))
-        output_img_sequences_predict_concatenate = np.reshape(output_img_sequences_predict, (output_time_steps*img_rows, img_cols))
+        output_img_sequences_predict_raw = model.predict([input_img_sequences_predict_fit_x, input_ext_sequences_predict_fit_x])
+        output_img_sequences_predict = output_img_sequences_predict_raw.astype(int)
+
+        output_img_sequences_test_concatenate    = np.reshape(output_img_sequences_test[test_samples_counter], (output_time_steps*img_rows, img_cols, 1))
+        output_img_sequences_predict_concatenate = np.reshape(output_img_sequences_predict[0], (output_time_steps*img_rows, img_cols, 1))
 
         output_img_sequences_concatenated = np.concatenate((output_img_sequences_test_concatenate, output_img_sequences_predict_concatenate), axis=1)
-        output_img_sequences_visual = Image.fromarray(output_img_sequences_concatenated, mode="L")
+        
+        output_img_sequences_concatenated_2D = np.reshape(output_img_sequences_concatenated, (output_time_steps*img_rows, img_cols+img_cols))
+        output_img_sequences_visual = Image.fromarray(np.asarray(output_img_sequences_concatenated_2D[:img_rows, :img_cols], mode="L")
 
         output_img_sequences_visual_name = str(output_time_sequences_test[test_samples_counter][0]) + '-' + str(output_time_sequences_test[test_samples_counter][-1]) + ".jpeg"
         output_img_sequences_visual.save(os.path.join(prediction_save_path, output_img_sequences_visual_name))
