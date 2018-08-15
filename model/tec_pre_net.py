@@ -22,7 +22,7 @@ from .params import Params
 def get_conv_layer(input_time_steps, layer_name, kernel_size=(3, 3), nb_filter=32, channels=32):
     #对每个time_step的tec_map做卷积计算
     conv_layer = Convolution2D(nb_filter, kernel_size, padding="same", name=layer_name, activation="relu")
-    time_dis_conv_layer = TimeDistributed(conv_layer, name="time_dis_"+layer_name, input_shape=(input_time_steps, Params.map_rows, Params.map_cols, channels))
+    time_dis_conv_layer = TimeDistributed(conv_layer, input_shape=(input_time_steps, Params.map_rows, Params.map_cols, channels))
 
     return conv_layer, time_dis_conv_layer
 
