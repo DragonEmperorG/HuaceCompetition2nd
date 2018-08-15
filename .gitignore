@@ -105,7 +105,8 @@ venv.bak/
 .idea/
 .vscode/
 checkpoint/
-dataset/
 data_processing/JPG/
+dataset/
+tensorboard/
 
 TecMapPreNet.png

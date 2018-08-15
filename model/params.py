@@ -1,7 +1,7 @@
 
 #网络参数
 class Params(object):
-    batch_size = 8 #不能改
+    batch_size = 4 #不能改
     map_rows = 61 #tec_map行数
     map_cols = 49 #tec_map列数
     input_time_steps = 36 #输入时间序列长度，36*2小时/24小时=3天
