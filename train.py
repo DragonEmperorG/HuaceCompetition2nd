@@ -8,7 +8,13 @@ import os
 import configparser
 import numpy as np
 import tensorflow as tf
-import keras.backend.tensorflow_backend as ktf
+# import keras.backend.tensorflow_backend as KTF
+# tfconfig = tf.ConfigProto()
+# tfconfig.gpu_options.allow_growth = True
+# session = tf.Session(config=tfconfig)
+# GPU 显存自动调用
+# KTF.set_session(session)     
+
 
 from datetime import datetime
 from keras.models import load_model, Model
@@ -74,10 +80,11 @@ if __name__ == '__main__':
     nb_train_samples      = config.getint('DatasetInfo', 'nb_train_samples')
     nb_validation_samples = config.getint('DatasetInfo', 'nb_validation_samples')
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
-    nb_epoch              = 10
+    nb_epoch              = 100
     batch_size            = Params.batch_size
-    weights_path          = os.path.join(cwd, 'checkpoint', "TEC_PRE_NET_MODEL_WEIGHTS.04-0.01132.hdf5")
-    logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815001811', "TEC_PRE_NET_MODEL_WEIGHTS.01-0.01267.hdf5")
+    save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
+    logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
 
     training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
     training_dataset_iterator = training_dataset.make_initializable_iterator()
@@ -95,14 +102,9 @@ if __name__ == '__main__':
     input_ext_sequences_validation  = []
     output_img_sequences_validation = []
 
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth=True
-    session = tf.Session(config=config)
     #开始一个会话
-    with tf.Session(config=config) as sess:
-        
-        # GPU 显存自动调用
-        # ktf.set_session(session)       
+    # with tf.Session(config=tfconfig) as sess:
+    with tf.Session() as sess:  
         sess.run(training_dataset_iterator.initializer)
         sess.run(validation_dataset_iterator.initializer)
        
@@ -145,14 +147,18 @@ if __name__ == '__main__':
 
 
     model = tec_pre_net((img_rows, img_cols))
-    model.load_weights(weights_path, by_name=False)
+    model.load_weights(load_weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
     model.compile(optimizer=opt, loss='mean_squared_error', metrics=['accuracy'])
 
     # Callback
+    try:
+        os.makedirs(save_weights_path)
+    except:
+        pass
     checkpointer = ModelCheckpoint(
-        filepath=os.path.join(cwd, 'checkpoint', 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_acc:.5f}.hdf5'),
+        filepath=os.path.join(save_weights_path, 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_acc:.5f}.hdf5'),
         monitor='val_acc',
         verbose=1,
         save_weights_only= True,
