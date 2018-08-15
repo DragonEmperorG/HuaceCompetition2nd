@@ -17,6 +17,7 @@ import tensorflow as tf
 
 
 from datetime import datetime
+from keras import backend as K
 from keras.models import load_model, Model
 from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
@@ -67,6 +68,8 @@ def load_data(filename):
     dataset = tf.data.TFRecordDataset(filename)
     return dataset.map(parse_data)
 
+def tec_metric(y_true, y_pred):
+    return K.sqrt(K.mean(K.square(y_pred - y_true)))
     
 if __name__ == '__main__':
     cwd = os.getcwd()
@@ -82,7 +85,7 @@ if __name__ == '__main__':
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
     batch_size            = Params.batch_size
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815001811', "TEC_PRE_NET_MODEL_WEIGHTS.01-0.01267.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815085752', "TEC_PRE_NET_MODEL_WEIGHTS.14-0.01567.hdf5")
     save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
     logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
 
@@ -150,7 +153,7 @@ if __name__ == '__main__':
     model.load_weights(load_weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
-    model.compile(optimizer=opt, loss='mean_squared_error', metrics=['accuracy'])
+    model.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy', tec_metric])
 
     # Callback
     try:
