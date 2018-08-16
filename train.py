@@ -68,8 +68,15 @@ def load_data(filename):
     dataset = tf.data.TFRecordDataset(filename)
     return dataset.map(parse_data)
 
-def tec_metric(y_true, y_pred):
+def tec_root_mean_squared_error_loss(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
+
+def tec_cosine_proximity_metric(y_true, y_pred):
+    y_true = K.flatten(y_true)
+    y_pred = K.flatten(y_pred)
+    y_true = K.l2_normalize(y_true, axis=-1)
+    y_pred = K.l2_normalize(y_pred, axis=-1)
+    return K.sum(y_true * y_pred, axis=-1)
     
 if __name__ == '__main__':
     cwd = os.getcwd()
@@ -85,7 +92,7 @@ if __name__ == '__main__':
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
     batch_size            = Params.batch_size
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815085752', "TEC_PRE_NET_MODEL_WEIGHTS.14-0.01567.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180816125301', "TEC_PRE_NET_MODEL_WEIGHTS.04-0.01549.hdf5")
     save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
     logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
 
@@ -153,7 +160,7 @@ if __name__ == '__main__':
     model.load_weights(load_weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
-    model.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy', tec_metric])
+    model.compile(optimizer=opt, loss=tec_root_mean_squared_error_loss, metrics=[tec_cosine_proximity_metric])
 
     # Callback
     try:

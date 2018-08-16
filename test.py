@@ -72,7 +72,7 @@ if __name__ == '__main__':
     output_time_steps     = Params.output_time_steps
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
 
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815001811', "TEC_PRE_NET_MODEL_WEIGHTS.10-0.01543.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815200639', "TEC_PRE_NET_MODEL_WEIGHTS.03-0.01570.hdf5")
     prediction_save_path  = os.path.join(cwd, 'prediction', datetime.now().strftime('%Y%m%d%H%M%S'))
     try:
         os.makedirs(prediction_save_path)
@@ -104,9 +104,10 @@ if __name__ == '__main__':
         except tf.errors.OutOfRangeError:
             print("Test dataset constructed ...")
 
-
+    print("Start model construction ...")
     model = tec_pre_net((img_rows, img_cols))
     model.load_weights(load_weights_path, by_name=False)
+    print("Model constructed ...")
 
     for test_samples_counter in tqdm(range(nb_test_samples), desc="IONPredictionProgress", unit="sequences", ascii=True):
         input_img_sequences_predict_fit_x = np.expand_dims(input_img_sequences_test[test_samples_counter], axis=0)
@@ -121,7 +122,8 @@ if __name__ == '__main__':
         output_img_sequences_concatenated = np.concatenate((output_img_sequences_test_concatenate, output_img_sequences_predict_concatenate), axis=1)
         
         output_img_sequences_concatenated_2D = np.reshape(output_img_sequences_concatenated, (output_time_steps*img_rows, img_cols+img_cols))
-        output_img_sequences_visual = Image.fromarray(np.asarray(output_img_sequences_concatenated_2D[:img_rows, :img_cols], mode="L")
+        output_img_sequences_concatenated_2D_uint8 = output_img_sequences_concatenated_2D.astype(np.uint8)
+        output_img_sequences_visual = Image.fromarray(output_img_sequences_concatenated_2D_uint8, mode="L")
 
         output_img_sequences_visual_name = str(output_time_sequences_test[test_samples_counter][0]) + '-' + str(output_time_sequences_test[test_samples_counter][-1]) + ".jpeg"
         output_img_sequences_visual.save(os.path.join(prediction_save_path, output_img_sequences_visual_name))
