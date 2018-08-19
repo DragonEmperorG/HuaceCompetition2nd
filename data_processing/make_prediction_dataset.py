@@ -27,13 +27,10 @@ def _float_feature(value):
 
 def make_dataset():
     cwd = os.getcwd()
-    np.random.seed(0)
-    raw_data_path = os.path.join(cwd, 'data_processing','JPG')
+    raw_data_path = os.path.join(cwd, 'data_processing','PredictionJPG')
     # 要生成的文件
-    training_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_training.tfrecords"))
-    validation_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_validation.tfrecords"))
-    test_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_test.tfrecords"))
-    csv_reader = csv.reader(open(os.path.join(cwd, 'data_processing', "exogenous.txt")))
+    predition_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_prediction.tfrecords"))
+    csv_reader = csv.reader(open(os.path.join(cwd, 'data_processing', "PreExogenous.txt")))
     conf = configparser.ConfigParser()
 
     row_list = []
@@ -49,12 +46,9 @@ def make_dataset():
     iot_time_steps = input_time_steps + output_time_steps
 
     # 初始化图片序列处理的相关变量
-    time_step_counter      = 0    # 时间戳记录变量
-    nb_train_samples       = 0    # 训练集样本统计变量
-    nb_validation_samples  = 0    # 验证集样本统计变量
-    nb_test_samples        = 0    # 测试集样本统计变量
+    time_step_counter    = 0    # 时间戳记录变量
+    nb_predition_samples = 0    # 预测集样本统计变量
     # total_time_step        = len(os.listdir(raw_data_path))    # 时间戳总量
-    nb_samples             = 0    # 数据集集样本统计变量
 
     # 样本构建滑动窗口变量初始化
     iot_img_sequences      = []
@@ -89,8 +83,6 @@ def make_dataset():
 
         # 当滑动窗口内的样本达到一个输入输出量的时候开始生成样本
         if (time_step_counter >= iot_time_steps):
-            nb_samples = nb_samples + 1
-
             # 分离输入输出样本
             input_img_sequences   = iot_img_sequences[:input_time_steps]
             output_img_sequences  = iot_img_sequences[input_time_steps:]
@@ -118,39 +110,23 @@ def make_dataset():
                 'output_img_sequences_shape' : _int64_feature(output_img_sequences_array.shape),
                 'input_ext_sequences_shape'  : _int64_feature(input_ext_sequences_array.shape),
             }))
-            
-            # 随机输送数据集
-            if (np.random.randint(10) <= 7):
-                # 序列化为字符串
-                nb_train_samples = nb_train_samples + 1
-                training_writer.write(example.SerializeToString())
 
-            elif (np.random.randint(10) == 8):
-                nb_validation_samples = nb_validation_samples + 1
-                validation_writer.write(example.SerializeToString())
-
-            else:
-                nb_test_samples = nb_test_samples + 1
-                test_writer.write(example.SerializeToString())
+            nb_predition_samples = nb_predition_samples + 1
+            predition_writer.write(example.SerializeToString())
             
 
             iot_img_sequences.pop(0)
             iot_time_sequences.pop(0)
             iot_ext_sequences.pop(0)
     
-    training_writer.close()
-    validation_writer.close()
-    test_writer.close()
+    predition_writer.close()
 
     # 统计回写数据集的相关参数
     conf["DatasetInfo"] = {        
-        'nb_time_step'          : time_step_counter,
-        'nb_samples'            : nb_samples,
-        'nb_train_samples'      : nb_train_samples,
-        'nb_validation_samples' : nb_validation_samples,
-        'nb_test_samples'       : nb_test_samples,
+        'nb_time_step'         : time_step_counter,
+        'nb_prediction_samples' : nb_predition_samples,
     }
-    with open(os.path.join(cwd, 'dataset', 'ion_dataset_info.ini'), 'w') as configfile:
+    with open(os.path.join(cwd, 'dataset', 'ion_dataset_prediction_info.ini'), 'w') as configfile:
         conf.write(configfile)
 
 
