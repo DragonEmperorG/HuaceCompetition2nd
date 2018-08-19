@@ -72,11 +72,12 @@ def tec_root_mean_squared_error_loss(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
 def tec_cosine_proximity_metric(y_true, y_pred):
-    y_true = K.flatten(y_true)
-    y_pred = K.flatten(y_pred)
-    y_true = K.l2_normalize(y_true, axis=-1)
-    y_pred = K.l2_normalize(y_pred, axis=-1)
-    return K.sum(y_true * y_pred, axis=-1)
+    # y_true = K.flatten(y_true)
+    # y_pred = K.flatten(y_pred)
+    # y_true = K.l2_normalize(y_true, axis=-1)
+    # y_pred = K.l2_normalize(y_pred, axis=-1)
+    # return K.sum(y_true * y_pred, axis=-1)
+    return K.sum(K.l2_normalize(K.flatten(y_true), axis=-1) * K.l2_normalize(K.flatten(y_pred), axis=-1), axis=-1)
     
 if __name__ == '__main__':
     cwd = os.getcwd()
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
     batch_size            = Params.batch_size
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180816125301', "TEC_PRE_NET_MODEL_WEIGHTS.04-0.01549.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180816221150', "TEC_PRE_NET_MODEL_WEIGHTS.31-30.2123-0.96502.hdf5")
     save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
     logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
 
@@ -168,7 +169,7 @@ if __name__ == '__main__':
     except:
         pass
     checkpointer = ModelCheckpoint(
-        filepath=os.path.join(save_weights_path, 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_acc:.5f}.hdf5'),
+        filepath=os.path.join(save_weights_path, 'TEC_PRE_NET_MODEL_WEIGHTS.{epoch:02d}-{val_loss:.4f}-{val_tec_cosine_proximity_metric:.5f}.hdf5'),
         monitor='val_acc',
         verbose=1,
         save_weights_only= True,
