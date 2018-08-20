@@ -108,6 +108,7 @@ checkpoint/
 data_processing/JPG/
 data_processing/MAT/
 data_processing/PredictionJPG/
+data_processing/PredictionMAT/
 dataset/
 tensorboard/
 prediction/

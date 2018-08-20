@@ -10,8 +10,10 @@ import configparser
 import numpy as np
 import tensorflow as tf 
 
-from PIL import Image
+# from PIL import Image
+from scipy.io import loadmat
 from tqdm import tqdm
+
 
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
@@ -27,7 +29,7 @@ def _float_feature(value):
 
 def make_dataset():
     cwd = os.getcwd()
-    raw_data_path = os.path.join(cwd, 'data_processing','PredictionJPG')
+    raw_data_path = os.path.join(cwd, 'data_processing','PredictionMAT')
     # 要生成的文件
     predition_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_prediction.tfrecords"))
     csv_reader = csv.reader(open(os.path.join(cwd, 'data_processing', "PreExogenous.txt")))
@@ -41,7 +43,7 @@ def make_dataset():
     ext_data_np = np.array(row_list, dtype=np.float)
     # print(ext_data_np.shape)
     
-    input_time_steps = 36
+    input_time_steps = 24
     output_time_steps = 12
     iot_time_steps = input_time_steps + output_time_steps
 
@@ -62,16 +64,18 @@ def make_dataset():
     iot_ext_sequences      = []
     input_ext_sequences    = []
 
-    for img_name in tqdm(os.listdir(raw_data_path), desc="TFRecordWriterProgress", unit="image", ascii=True):
+    for img_name in tqdm(os.listdir(raw_data_path), desc="TFRecordWriterProgress", unit="mat", ascii=True):
         # 每一个图片的地址
         img_path = os.path.join(raw_data_path, img_name)
 
         if(not os.path.exists(img_path)):
             continue
 
-        img = Image.open(img_path)
+        # img = Image.open(img_path)
+        img =loadmat(img_path)
         # 将图片转化为矩阵，并获取当前图片的时间戳
-        img_raw_array = np.array(img)
+        img_raw_array = np.array(img['mat'])
+        img_raw_array = img_raw_array.astype(np.float)
         img_raw_array = np.reshape(img_raw_array, (img_raw_array.shape[0], img_raw_array.shape[1], 1))
         img_time_step = int(os.path.splitext(img_name)[0])
 
@@ -100,11 +104,21 @@ def make_dataset():
             # print(input_ext_sequences_array.shape)
 
             # example对象对input_img_sequences、input_ext_sequences和output_img_sequences等e数据进行封装
+            # example = tf.train.Example(features=tf.train.Features(feature={
+            #     'input_img_sequences'        : _bytes_feature([input_img_sequences_array.tobytes()]),
+            #     'output_img_sequences'       : _bytes_feature([output_img_sequences_array.tobytes()]),
+            #     'input_time_sequences'       : _int64_feature(input_time_sequences_array.flatten().tolist()),
+            #     'output_time_sequences'      : _int64_feature(output_time_sequences_array.flatten().tolist()),
+            #     'input_ext_sequences'        : _float_feature(input_ext_sequences_array.flatten().tolist()),
+            #     'input_img_sequences_shape'  : _int64_feature(input_img_sequences_array.shape),
+            #     'output_img_sequences_shape' : _int64_feature(output_img_sequences_array.shape),
+            #     'input_ext_sequences_shape'  : _int64_feature(input_ext_sequences_array.shape),
+            # }))
             example = tf.train.Example(features=tf.train.Features(feature={
-                'input_img_sequences'        : _bytes_feature([input_img_sequences_array.tobytes()]),
-                'output_img_sequences'       : _bytes_feature([output_img_sequences_array.tobytes()]),
-                'input_time_sequences'       : _int64_feature(input_time_sequences_array.flatten().tolist()),
-                'output_time_sequences'      : _int64_feature(output_time_sequences_array.flatten().tolist()),
+                'input_img_sequences'        : _float_feature(input_img_sequences_array.flatten().tolist()),
+                'output_img_sequences'       : _float_feature(output_img_sequences_array.flatten().tolist()),
+                'input_time_sequences'       : _int64_feature(input_time_sequences_array),
+                'output_time_sequences'      : _int64_feature(output_time_sequences_array),
                 'input_ext_sequences'        : _float_feature(input_ext_sequences_array.flatten().tolist()),
                 'input_img_sequences_shape'  : _int64_feature(input_img_sequences_array.shape),
                 'output_img_sequences_shape' : _int64_feature(output_img_sequences_array.shape),

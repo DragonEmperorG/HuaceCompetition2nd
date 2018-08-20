@@ -76,10 +76,6 @@ def parse_data(serialized_example):
     input_img_sequences = tf.reshape(features['input_img_sequences'], input_img_sequences_shape)
     output_img_sequences = tf.reshape(features['output_img_sequences'], output_img_sequences_shape)
     input_ext_sequences = tf.reshape(features['input_ext_sequences'], input_ext_sequences_shape)
-    #throw input_img_sequences tensor
-    # input_img_sequences = tf.cast(input_img_sequences, tf.int32)
-    #throw output_img_sequences tensor
-    # output_img_sequences = tf.cast(output_img_sequences, tf.int32)
 
     return input_img_sequences, input_ext_sequences, output_img_sequences
 
