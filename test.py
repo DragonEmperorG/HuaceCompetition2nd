@@ -21,10 +21,10 @@ def parse_data(serialized_example):
     features = tf.parse_single_example(
         serialized_example,
         features={
-            'input_img_sequences'        : tf.FixedLenFeature([], tf.string),
-            'output_img_sequences'       : tf.FixedLenFeature([], tf.string),
+            'input_img_sequences'        : tf.FixedLenFeature([71736], tf.float32),
+            'output_img_sequences'       : tf.FixedLenFeature([35868], tf.float32),
             'output_time_sequences'      : tf.FixedLenFeature([Params.output_time_steps], tf.int64),
-            'input_ext_sequences'        : tf.FixedLenFeature([180], tf.float32),
+            'input_ext_sequences'        : tf.FixedLenFeature([120], tf.float32),
             'input_img_sequences_shape'  : tf.FixedLenFeature([4], tf.int64),
             'output_img_sequences_shape' : tf.FixedLenFeature([4], tf.int64),
             'input_ext_sequences_shape'  : tf.FixedLenFeature([2], tf.int64),

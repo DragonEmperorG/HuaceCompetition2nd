@@ -2,12 +2,13 @@
 """
 @author: LONG QIAN
 """
-
+from __future__ import print_function
 
 import os 
 import configparser
 import numpy as np
 import tensorflow as tf
+import sys
 # import keras.backend.tensorflow_backend as KTF
 # tfconfig = tf.ConfigProto()
 # tfconfig.gpu_options.allow_growth = True
@@ -25,30 +26,55 @@ from keras.callbacks import ModelCheckpoint, TensorBoard
 from model.params import Params
 from model.tec_pre_net import tec_pre_net
 
+"""
+    MinMaxNormalization
+"""
+class MinMaxNormalization(object):
+    '''MinMax Normalization --> [-1, 1]
+       x = (x - min) / (max - min).
+       x = x * 2 - 1
+    '''
+
+    def __init__(self):
+        self._min = sys.float_info.max
+        self._max = sys.float_info.min
+        pass
+
+    def fit(self, X):
+        self._min = min(X.min(), self._min)
+        self._max = max(X.max(), self._max)
+
+    def transform(self, X):
+        X = 1. * (X - self._min) / (self._max - self._min)
+        X = X * 2. - 1.
+        return X
+
+    def inverse_transform(self, X):
+        X = (X + 1.) / 2.
+        X = 1. * X * (self._max - self._min) + self._min
+        return X
+
 
 def parse_data(serialized_example):
     #return input_img_sequences and output_img_sequences
     features = tf.parse_single_example(
         serialized_example,
         features={
-            'input_img_sequences'        : tf.FixedLenFeature([], tf.string),
-            'output_img_sequences'       : tf.FixedLenFeature([], tf.string),
-            'input_ext_sequences'        : tf.FixedLenFeature([180], tf.float32),
+            'input_img_sequences'        : tf.FixedLenFeature([71736], tf.float32),
+            'output_img_sequences'       : tf.FixedLenFeature([35868], tf.float32),
+            'input_ext_sequences'        : tf.FixedLenFeature([120], tf.float32),
             'input_img_sequences_shape'  : tf.FixedLenFeature([4], tf.int64),
             'output_img_sequences_shape' : tf.FixedLenFeature([4], tf.int64),
             'input_ext_sequences_shape'  : tf.FixedLenFeature([2], tf.int64),
         }
     )
 
-    input_img_sequences = tf.decode_raw(features['input_img_sequences'], tf.uint8)
-    output_img_sequences = tf.decode_raw(features['output_img_sequences'], tf.uint8)
-
     input_img_sequences_shape  = tf.cast(features['input_img_sequences_shape'], tf.int32)
     output_img_sequences_shape = tf.cast(features['output_img_sequences_shape'], tf.int32)
     input_ext_sequences_shape  = tf.cast(features['input_ext_sequences_shape'], tf.int32)
 
-    input_img_sequences = tf.reshape(input_img_sequences, input_img_sequences_shape)
-    output_img_sequences = tf.reshape(output_img_sequences, output_img_sequences_shape)
+    input_img_sequences = tf.reshape(features['input_img_sequences'], input_img_sequences_shape)
+    output_img_sequences = tf.reshape(features['output_img_sequences'], output_img_sequences_shape)
     input_ext_sequences = tf.reshape(features['input_ext_sequences'], input_ext_sequences_shape)
     #throw input_img_sequences tensor
     # input_img_sequences = tf.cast(input_img_sequences, tf.int32)
@@ -88,14 +114,21 @@ if __name__ == '__main__':
     img_cols              = Params.map_cols
     input_time_steps      = Params.input_time_steps
     output_time_steps     = Params.output_time_steps
+    external_dim          = Params.external_dim
     nb_train_samples      = config.getint('DatasetInfo', 'nb_train_samples')
     nb_validation_samples = config.getint('DatasetInfo', 'nb_validation_samples')
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
     batch_size            = Params.batch_size
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180816221150', "TEC_PRE_NET_MODEL_WEIGHTS.31-30.2123-0.96502.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820075547', "TEC_PRE_NET_MODEL_WEIGHTS.01-200.7376-0.59353.hdf5")
     save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
     logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
+
+    ion_dataset_normaliztion = MinMaxNormalization()
+
+    ion_dataset          = load_data(os.path.join(cwd, 'dataset','ion_dataset.tfrecords'))
+    ion_dataset_iterator = ion_dataset.make_initializable_iterator()
+    ion_dataset_iterator_next_element = ion_dataset_iterator.get_next()
 
     training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
     training_dataset_iterator = training_dataset.make_initializable_iterator()
@@ -116,24 +149,39 @@ if __name__ == '__main__':
     #开始一个会话
     # with tf.Session(config=tfconfig) as sess:
     with tf.Session() as sess:  
+        sess.run(ion_dataset_iterator.initializer)
         sess.run(training_dataset_iterator.initializer)
         sess.run(validation_dataset_iterator.initializer)
        
         try:
             while True:
+                input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(ion_dataset_iterator_next_element)
+                ion_dataset_normaliztion.fit(input_img_sequences)
+                ion_dataset_normaliztion.fit(output_img_sequences)
+        except tf.errors.OutOfRangeError:
+            print("Dataset's MinMaxNormalization constructed. MinValue: {}, MaxValue: {}".format(ion_dataset_normaliztion._min, ion_dataset_normaliztion._max))
+
+        try:
+            while True:
                 input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(training_dataset_iterator_next_element)
-                input_img_sequences_training.append(input_img_sequences)
+                input_img_sequences_training.append(ion_dataset_normaliztion.transform(input_img_sequences))
                 input_ext_sequences_training.append(input_ext_sequences)
-                output_img_sequences_training.append(output_img_sequences)
+                output_img_sequences_training.append(ion_dataset_normaliztion.transform(output_img_sequences))
+                # input_img_sequences_training.append(input_img_sequences)
+                # input_ext_sequences_training.append(input_ext_sequences)
+                # output_img_sequences_training.append(output_img_sequences)
         except tf.errors.OutOfRangeError:
             print("Training dataset constructed ...")        
 
         try:
             while True:
                 input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(validation_dataset_iterator_next_element)
-                input_img_sequences_validation.append(input_img_sequences)
+                input_img_sequences_validation.append(ion_dataset_normaliztion.transform(input_img_sequences))
                 input_ext_sequences_validation.append(input_ext_sequences)
-                output_img_sequences_validation.append(output_img_sequences)
+                output_img_sequences_validation.append(ion_dataset_normaliztion.transform(output_img_sequences))
+                # input_img_sequences_validation.append(input_img_sequences)
+                # input_ext_sequences_validation.append(input_ext_sequences)
+                # output_img_sequences_validation.append(output_img_sequences)
         except tf.errors.OutOfRangeError:
             print("Validation dataset constructed ...")   
 
@@ -147,6 +195,7 @@ if __name__ == '__main__':
     output_img_sequences_validation_fit_y = np.array(output_img_sequences_validation)
 
 
+
     def generator(model_input_1, model_input_2, model_output_1, batch_size):
         sample_size = model_input_1.shape[0]
         indexs = np.arange(sample_size)
@@ -157,8 +206,8 @@ if __name__ == '__main__':
                 yield [model_input_1[i], model_input_2[i]], model_output_1[i]
 
 
-    model = tec_pre_net((img_rows, img_cols))
-    model.load_weights(load_weights_path, by_name=False)
+    model = tec_pre_net((img_rows, img_cols), input_time_steps, output_time_steps, external_dim)
+    #model.load_weights(load_weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
     model.compile(optimizer=opt, loss=tec_root_mean_squared_error_loss, metrics=[tec_cosine_proximity_metric])

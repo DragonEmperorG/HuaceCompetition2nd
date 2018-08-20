@@ -106,6 +106,7 @@ venv.bak/
 .vscode/
 checkpoint/
 data_processing/JPG/
+data_processing/MAT/
 data_processing/PredictionJPG/
 dataset/
 tensorboard/

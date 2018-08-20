@@ -1,0 +1,57 @@
+<!DOCTYPE>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>TecMapPreNet</title>
+        <style type="text/css">
+            html,body {
+                margin:0px;
+                height:100%;
+                width:100%
+            }
+            .container {
+                width:100%;
+                height:100%
+            }
+            #info {
+                position:fixed;
+                background-color:rgba(13, 13, 13, 0.5);
+                padding:10px 10px 10px 10px;
+                font:13px bold sans-serif;
+                color:#fff;
+                left:0px;
+                top:0px;
+                width:100%;
+                height:140px;
+                overflow:hidden
+            }
+        </style>
+        <!-- or link to your downloaded files -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.js"></script>
+    </head>
+    <body style="margin:0px;">
+        <div id="map" class="container"></div>
+        <div id="info"></div>
+        <script type="text/javascript">              
+            // create map in div 'map'
+            var map = new maptalks.Map('map', {
+                center: [0, 0],
+                zoom: 2,
+                baseLayer: new maptalks.TileLayer('base', {
+                    urlTemplate: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    subdomains: ['a','b','c'],
+                    attribution: '&copy; <a href="http://www.osm.org" target="_blank">OpenStreetMap</a> contributors'
+                })
+            });
+
+            map.on('click', function (param) {
+                var infoDom = document.getElementById('info');
+                infoDom.innerHTML = '<div>' + new Date().toLocaleTimeString() +
+                    ': click map on ' + param.coordinate.toFixed(5).toArray().join() + '</div>' +
+                    infoDom.innerHTML;
+            });
+        </script>
+    </body>
+</html>
