@@ -111,26 +111,29 @@ if __name__ == '__main__':
     input_time_steps      = Params.input_time_steps
     output_time_steps     = Params.output_time_steps
     external_dim          = Params.external_dim
-    nb_train_samples      = config.getint('DatasetInfo', 'nb_train_samples')
-    nb_validation_samples = config.getint('DatasetInfo', 'nb_validation_samples')
+    # nb_train_samples      = config.getint('DatasetInfo', 'nb_train_samples')
+    # nb_validation_samples = config.getint('DatasetInfo', 'nb_validation_samples')
+    nb_train_samples      = 24
+    nb_validation_samples = 24
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
-    batch_size            = Params.batch_size
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820075547', "TEC_PRE_NET_MODEL_WEIGHTS.01-200.7376-0.59353.hdf5")
+    # batch_size            = Params.batch_size
+    batch_size            = 1
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820172828', "TEC_PRE_NET_MODEL_WEIGHTS.64-0.6645--0.07903.hdf5")
     save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
     logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
 
     ion_dataset_normaliztion = MinMaxNormalization()
 
-    ion_dataset          = load_data(os.path.join(cwd, 'dataset','ion_dataset.tfrecords'))
+    ion_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
     ion_dataset_iterator = ion_dataset.make_initializable_iterator()
     ion_dataset_iterator_next_element = ion_dataset_iterator.get_next()
 
-    training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
+    training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
     training_dataset_iterator = training_dataset.make_initializable_iterator()
     training_dataset_iterator_next_element = training_dataset_iterator.get_next()
 
-    validation_dataset          = load_data(os.path.join(cwd, 'dataset','ion_validation.tfrecords'))
+    validation_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
     validation_dataset_iterator = validation_dataset.make_initializable_iterator()
     validation_dataset_iterator_next_element = validation_dataset_iterator.get_next()
 
@@ -196,14 +199,15 @@ if __name__ == '__main__':
         sample_size = model_input_1.shape[0]
         indexs = np.arange(sample_size)
         np.random.shuffle(indexs)
-        batches = [indexs[range(batch_size*i, min(sample_size, batch_size*(i+1)))] for i in range(sample_size//batch_size+1)]
+        # batches = [indexs[range(batch_size*i, min(sample_size, batch_size*(i+1)))] for i in range(sample_size//batch_size+1)]
+        batches = [indexs[range(batch_size*i, min(sample_size, batch_size*(i+1)))] for i in range(sample_size//batch_size)]
         while True:
             for i in batches:
                 yield [model_input_1[i], model_input_2[i]], model_output_1[i]
 
 
     model = tec_pre_net((img_rows, img_cols), input_time_steps, output_time_steps, external_dim)
-    #model.load_weights(load_weights_path, by_name=False)
+    model.load_weights(load_weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
     model.compile(optimizer=opt, loss=tec_root_mean_squared_error_loss, metrics=[tec_cosine_proximity_metric])

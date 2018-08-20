@@ -9,7 +9,7 @@ class Params(object):
     conv_nb_filter = 24 #卷积层卷积核数量
     conv_lstm_filters = conv_nb_filter #暂时保持一致
     external_dim = 5 #外源输入维度
-    lr = 0.1
+    lr = 0.00000001
     num_epochs = 20
     
     def __init__(self):
