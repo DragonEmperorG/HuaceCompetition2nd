@@ -22,26 +22,23 @@ def parse_data(serialized_example):
     features = tf.parse_single_example(
         serialized_example,
         features={
-            'input_img_sequences'        : tf.FixedLenFeature([], tf.string),
-            'output_img_sequences'       : tf.FixedLenFeature([], tf.string),
+            'input_img_sequences'        : tf.FixedLenFeature([71736], tf.float32),
+            'output_img_sequences'       : tf.FixedLenFeature([35868], tf.float32),
             'output_time_sequences'      : tf.FixedLenFeature([Params.output_time_steps], tf.int64),
-            'input_ext_sequences'        : tf.FixedLenFeature([180], tf.float32),
+            'input_ext_sequences'        : tf.FixedLenFeature([120], tf.float32),
             'input_img_sequences_shape'  : tf.FixedLenFeature([4], tf.int64),
             'output_img_sequences_shape' : tf.FixedLenFeature([4], tf.int64),
             'input_ext_sequences_shape'  : tf.FixedLenFeature([2], tf.int64),
         }
     )
-
-    input_img_sequences = tf.decode_raw(features['input_img_sequences'], tf.uint8)
-    output_img_sequences = tf.decode_raw(features['output_img_sequences'], tf.uint8)
-
+    
     output_time_sequences      = tf.cast(features['output_time_sequences'], tf.int32)
     input_img_sequences_shape  = tf.cast(features['input_img_sequences_shape'], tf.int32)
     output_img_sequences_shape = tf.cast(features['output_img_sequences_shape'], tf.int32)
     input_ext_sequences_shape  = tf.cast(features['input_ext_sequences_shape'], tf.int32)
 
-    input_img_sequences = tf.reshape(input_img_sequences, input_img_sequences_shape)
-    output_img_sequences = tf.reshape(output_img_sequences, output_img_sequences_shape)
+    input_img_sequences = tf.reshape(features['input_img_sequences'], input_img_sequences_shape)
+    output_img_sequences = tf.reshape(features['output_img_sequences'], output_img_sequences_shape)
     input_ext_sequences = tf.reshape(features['input_ext_sequences'], input_ext_sequences_shape)
     #throw input_img_sequences tensor
     # input_img_sequences = tf.cast(input_img_sequences, tf.int32)
@@ -64,24 +61,27 @@ def load_data(filename):
     
 if __name__ == '__main__':
     cwd = os.getcwd()
-    config = configparser.ConfigParser()
-    config.read(os.path.join(cwd, 'dataset', "ion_dataset_prediction_info.ini"))
+    # config = configparser.ConfigParser()
+    # config.read(os.path.join(cwd, 'dataset', "ion_dataset_prediction_info.ini"))
 
     img_rows              = Params.map_rows
     img_cols              = Params.map_cols
     input_time_steps      = Params.input_time_steps
     output_time_steps     = Params.output_time_steps
+    external_dim          = Params.external_dim
     # nb_prediction_samples  = 12
-    nb_prediction_samples  = config.getint('DatasetInfo', 'nb_prediction_samples')
+    # nb_prediction_samples  = config.getint('DatasetInfo', 'nb_prediction_samples')
+    nb_prediction_samples = 1596
 
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180815001811', "TEC_PRE_NET_MODEL_WEIGHTS.10-0.01543.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820075547', "TEC_PRE_NET_MODEL_WEIGHTS.01-200.7376-0.59353.hdf5")
     prediction_save_path  = os.path.join(cwd, 'prediction', datetime.now().strftime('%Y%m%d%H%M%S'))
     try:
         os.makedirs(prediction_save_path)
     except:
         pass
 
-    prediction_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
+    # prediction_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
+    prediction_dataset          = load_data(os.path.join(cwd, 'dataset','ion_test.tfrecords'))
     prediction_dataset_iterator = prediction_dataset.make_initializable_iterator()
     prediction_dataset_iterator_next_element = prediction_dataset_iterator.get_next()
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
             print("prediction dataset constructed ...")
 
     print("Start model construction ...")
-    model = tec_pre_net((img_rows, img_cols))
+    model = tec_pre_net((img_rows, img_cols), input_time_steps, output_time_steps, external_dim)
     model.load_weights(load_weights_path, by_name=False)
     print("Model constructed ...")
 

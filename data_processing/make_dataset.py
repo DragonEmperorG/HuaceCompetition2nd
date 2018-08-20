@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf 
 
 from PIL import Image
+from scipy.io import loadmat
 from tqdm import tqdm
 
 def _bytes_feature(value):
@@ -28,8 +29,9 @@ def _float_feature(value):
 def make_dataset():
     cwd = os.getcwd()
     np.random.seed(0)
-    raw_data_path = os.path.join(cwd, 'data_processing','JPG')
+    raw_data_path = os.path.join(cwd, 'data_processing','MAT')
     # 要生成的文件
+    dataset_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_dataset.tfrecords"))
     training_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_training.tfrecords"))
     validation_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_validation.tfrecords"))
     test_writer = tf.python_io.TFRecordWriter(os.path.join(cwd, 'dataset', "ion_test.tfrecords"))
@@ -44,7 +46,7 @@ def make_dataset():
     ext_data_np = np.array(row_list, dtype=np.float)
     # print(ext_data_np.shape)
     
-    input_time_steps = 36
+    input_time_steps = 24
     output_time_steps = 12
     iot_time_steps = input_time_steps + output_time_steps
 
@@ -68,16 +70,18 @@ def make_dataset():
     iot_ext_sequences      = []
     input_ext_sequences    = []
 
-    for img_name in tqdm(os.listdir(raw_data_path), desc="TFRecordWriterProgress", unit="image", ascii=True):
+    for img_name in tqdm(os.listdir(raw_data_path), desc="TFRecordWriterProgress", unit="mat", ascii=True):
         # 每一个图片的地址
         img_path = os.path.join(raw_data_path, img_name)
 
         if(not os.path.exists(img_path)):
             continue
 
-        img = Image.open(img_path)
+        # img = Image.open(img_path)
+        img =loadmat(img_path)
         # 将图片转化为矩阵，并获取当前图片的时间戳
-        img_raw_array = np.array(img)
+        img_raw_array = np.array(img['mat'])
+        img_raw_array = img_raw_array.astype(np.float)
         img_raw_array = np.reshape(img_raw_array, (img_raw_array.shape[0], img_raw_array.shape[1], 1))
         img_time_step = int(os.path.splitext(img_name)[0])
 
@@ -89,8 +93,6 @@ def make_dataset():
 
         # 当滑动窗口内的样本达到一个输入输出量的时候开始生成样本
         if (time_step_counter >= iot_time_steps):
-            nb_samples = nb_samples + 1
-
             # 分离输入输出样本
             input_img_sequences   = iot_img_sequences[:input_time_steps]
             output_img_sequences  = iot_img_sequences[input_time_steps:]
@@ -108,16 +110,29 @@ def make_dataset():
             # print(input_ext_sequences_array.shape)
 
             # example对象对input_img_sequences、input_ext_sequences和output_img_sequences等e数据进行封装
+            # example = tf.train.Example(features=tf.train.Features(feature={
+            #     'input_img_sequences'        : _bytes_feature([input_img_sequences_array.tobytes()]),
+            #     'output_img_sequences'       : _bytes_feature([output_img_sequences_array.tobytes()]),
+            #     'input_time_sequences'       : _int64_feature(input_time_sequences_array.flatten().tolist()),
+            #     'output_time_sequences'      : _int64_feature(output_time_sequences_array.flatten().tolist()),
+            #     'input_ext_sequences'        : _float_feature(input_ext_sequences_array.flatten().tolist()),
+            #     'input_img_sequences_shape'  : _int64_feature(input_img_sequences_array.shape),
+            #     'output_img_sequences_shape' : _int64_feature(output_img_sequences_array.shape),
+            #     'input_ext_sequences_shape'  : _int64_feature(input_ext_sequences_array.shape),
+            # }))
             example = tf.train.Example(features=tf.train.Features(feature={
-                'input_img_sequences'        : _bytes_feature([input_img_sequences_array.tobytes()]),
-                'output_img_sequences'       : _bytes_feature([output_img_sequences_array.tobytes()]),
-                'input_time_sequences'       : _int64_feature(input_time_sequences_array.flatten().tolist()),
-                'output_time_sequences'      : _int64_feature(output_time_sequences_array.flatten().tolist()),
+                'input_img_sequences'        : _float_feature(input_img_sequences_array.flatten().tolist()),
+                'output_img_sequences'       : _float_feature(output_img_sequences_array.flatten().tolist()),
+                'input_time_sequences'       : _int64_feature(input_time_sequences_array),
+                'output_time_sequences'      : _int64_feature(output_time_sequences_array),
                 'input_ext_sequences'        : _float_feature(input_ext_sequences_array.flatten().tolist()),
                 'input_img_sequences_shape'  : _int64_feature(input_img_sequences_array.shape),
                 'output_img_sequences_shape' : _int64_feature(output_img_sequences_array.shape),
                 'input_ext_sequences_shape'  : _int64_feature(input_ext_sequences_array.shape),
             }))
+
+            nb_samples = nb_samples + 1
+            dataset_writer.write(example.SerializeToString())
             
             # 随机输送数据集
             if (np.random.randint(10) <= 7):
@@ -138,6 +153,7 @@ def make_dataset():
             iot_time_sequences.pop(0)
             iot_ext_sequences.pop(0)
     
+    dataset_writer.close()
     training_writer.close()
     validation_writer.close()
     test_writer.close()
