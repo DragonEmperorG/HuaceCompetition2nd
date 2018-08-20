@@ -120,7 +120,7 @@ if __name__ == '__main__':
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
     batch_size            = Params.batch_size
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820075547', "TEC_PRE_NET_MODEL_WEIGHTS.01-200.7376-0.59353.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820154635', "TEC_PRE_NET_MODEL_WEIGHTS.04-104.7666-0.86629.hdf5")
     save_weights_path     = os.path.join(cwd, 'checkpoint', datetime.now().strftime('%Y%m%d%H%M%S'))
     logs_path             = os.path.join(cwd, 'tensorboard', datetime.now().strftime('%Y%m%d%H%M%S'))    
 
@@ -164,24 +164,24 @@ if __name__ == '__main__':
         try:
             while True:
                 input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(training_dataset_iterator_next_element)
-                input_img_sequences_training.append(ion_dataset_normaliztion.transform(input_img_sequences))
-                input_ext_sequences_training.append(input_ext_sequences)
-                output_img_sequences_training.append(ion_dataset_normaliztion.transform(output_img_sequences))
-                # input_img_sequences_training.append(input_img_sequences)
+                # input_img_sequences_training.append(ion_dataset_normaliztion.transform(input_img_sequences))
                 # input_ext_sequences_training.append(input_ext_sequences)
-                # output_img_sequences_training.append(output_img_sequences)
+                # output_img_sequences_training.append(ion_dataset_normaliztion.transform(output_img_sequences))
+                input_img_sequences_training.append(input_img_sequences)
+                input_ext_sequences_training.append(input_ext_sequences)
+                output_img_sequences_training.append(output_img_sequences)
         except tf.errors.OutOfRangeError:
             print("Training dataset constructed ...")        
 
         try:
             while True:
                 input_img_sequences, input_ext_sequences, output_img_sequences = sess.run(validation_dataset_iterator_next_element)
-                input_img_sequences_validation.append(ion_dataset_normaliztion.transform(input_img_sequences))
-                input_ext_sequences_validation.append(input_ext_sequences)
-                output_img_sequences_validation.append(ion_dataset_normaliztion.transform(output_img_sequences))
-                # input_img_sequences_validation.append(input_img_sequences)
+                # input_img_sequences_validation.append(ion_dataset_normaliztion.transform(input_img_sequences))
                 # input_ext_sequences_validation.append(input_ext_sequences)
-                # output_img_sequences_validation.append(output_img_sequences)
+                # output_img_sequences_validation.append(ion_dataset_normaliztion.transform(output_img_sequences))
+                input_img_sequences_validation.append(input_img_sequences)
+                input_ext_sequences_validation.append(input_ext_sequences)
+                output_img_sequences_validation.append(output_img_sequences)
         except tf.errors.OutOfRangeError:
             print("Validation dataset constructed ...")   
 
@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
 
     model = tec_pre_net((img_rows, img_cols), input_time_steps, output_time_steps, external_dim)
-    #model.load_weights(load_weights_path, by_name=False)
+    model.load_weights(load_weights_path, by_name=False)
 
     opt = Adam(lr=Params.lr, beta_1=0.9, beta_2=0.999, decay=0.01)
     model.compile(optimizer=opt, loss=tec_root_mean_squared_error_loss, metrics=[tec_cosine_proximity_metric])

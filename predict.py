@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # nb_prediction_samples  = config.getint('DatasetInfo', 'nb_prediction_samples')
     nb_prediction_samples = 1596
 
-    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820075547', "TEC_PRE_NET_MODEL_WEIGHTS.01-200.7376-0.59353.hdf5")
+    load_weights_path     = os.path.join(cwd, 'checkpoint', '20180820175244', "TEC_PRE_NET_MODEL_WEIGHTS.05-103.5601-0.87323.hdf5")
     prediction_save_path  = os.path.join(cwd, 'prediction', datetime.now().strftime('%Y%m%d%H%M%S'))
     try:
         os.makedirs(prediction_save_path)
