@@ -76,10 +76,6 @@ def parse_data(serialized_example):
     input_img_sequences = tf.reshape(features['input_img_sequences'], input_img_sequences_shape)
     output_img_sequences = tf.reshape(features['output_img_sequences'], output_img_sequences_shape)
     input_ext_sequences = tf.reshape(features['input_ext_sequences'], input_ext_sequences_shape)
-    #throw input_img_sequences tensor
-    # input_img_sequences = tf.cast(input_img_sequences, tf.int32)
-    #throw output_img_sequences tensor
-    # output_img_sequences = tf.cast(output_img_sequences, tf.int32)
 
     return input_img_sequences, input_ext_sequences, output_img_sequences
 
@@ -115,8 +111,10 @@ if __name__ == '__main__':
     input_time_steps      = Params.input_time_steps
     output_time_steps     = Params.output_time_steps
     external_dim          = Params.external_dim
-    nb_train_samples      = config.getint('DatasetInfo', 'nb_train_samples')
-    nb_validation_samples = config.getint('DatasetInfo', 'nb_validation_samples')
+    # nb_train_samples      = config.getint('DatasetInfo', 'nb_train_samples')
+    # nb_validation_samples = config.getint('DatasetInfo', 'nb_validation_samples')
+    nb_train_samples      = 24
+    nb_validation_samples = 24
     nb_test_samples       = config.getint('DatasetInfo', 'nb_test_samples')
     nb_epoch              = 100
     batch_size            = Params.batch_size
@@ -126,15 +124,15 @@ if __name__ == '__main__':
 
     ion_dataset_normaliztion = MinMaxNormalization()
 
-    ion_dataset          = load_data(os.path.join(cwd, 'dataset','ion_dataset.tfrecords'))
+    ion_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
     ion_dataset_iterator = ion_dataset.make_initializable_iterator()
     ion_dataset_iterator_next_element = ion_dataset_iterator.get_next()
 
-    training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_training.tfrecords'))
+    training_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
     training_dataset_iterator = training_dataset.make_initializable_iterator()
     training_dataset_iterator_next_element = training_dataset_iterator.get_next()
 
-    validation_dataset          = load_data(os.path.join(cwd, 'dataset','ion_validation.tfrecords'))
+    validation_dataset          = load_data(os.path.join(cwd, 'dataset','ion_prediction.tfrecords'))
     validation_dataset_iterator = validation_dataset.make_initializable_iterator()
     validation_dataset_iterator_next_element = validation_dataset_iterator.get_next()
 
@@ -200,7 +198,8 @@ if __name__ == '__main__':
         sample_size = model_input_1.shape[0]
         indexs = np.arange(sample_size)
         np.random.shuffle(indexs)
-        batches = [indexs[range(batch_size*i, min(sample_size, batch_size*(i+1)))] for i in range(sample_size//batch_size+1)]
+        # batches = [indexs[range(batch_size*i, min(sample_size, batch_size*(i+1)))] for i in range(sample_size//batch_size+1)]
+        batches = [indexs[range(batch_size*i, min(sample_size, batch_size*(i+1)))] for i in range(sample_size//batch_size)]
         while True:
             for i in batches:
                 yield [model_input_1[i], model_input_2[i]], model_output_1[i]
